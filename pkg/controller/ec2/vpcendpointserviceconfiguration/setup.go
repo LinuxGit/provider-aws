@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	svcsdk "github.com/aws/aws-sdk-go/service/ec2"
 	svcsdkapi "github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/crossplane-contrib/provider-aws/pkg/utils/predicate"
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -15,6 +16,7 @@ import (
 	cpresource "github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 
 	svcapitypes "github.com/crossplane-contrib/provider-aws/apis/ec2/v1alpha1"
 	"github.com/crossplane-contrib/provider-aws/apis/v1alpha1"
@@ -64,11 +66,16 @@ func SetupVPCEndpointServiceConfiguration(mgr ctrl.Manager, o controller.Options
 		cpresource.ManagedKind(svcapitypes.VPCEndpointServiceConfigurationGroupVersionKind),
 		reconcilerOpts...)
 
+	p, err := predicate.SetupPredicate()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(cpresource.DesiredStateChanged()).
-		For(&svcapitypes.VPCEndpointServiceConfiguration{}).
+		For(&svcapitypes.VPCEndpointServiceConfiguration{}, builder.WithPredicates(p)).
 		Complete(r)
 }
 

@@ -24,6 +24,7 @@ import (
 	awsiam "github.com/aws/aws-sdk-go-v2/service/iam"
 	awsiamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/crossplane-contrib/provider-aws/pkg/utils/predicate"
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -33,6 +34,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/crossplane-contrib/provider-aws/apis/iam/v1beta1"
@@ -89,11 +91,16 @@ func SetupPolicy(mgr ctrl.Manager, o controller.Options) error {
 		resource.ManagedKind(v1beta1.PolicyGroupVersionKind),
 		reconcilerOpts...)
 
+	p, err := predicate.SetupPredicate()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
-		For(&v1beta1.Policy{}).
+		For(&v1beta1.Policy{}, builder.WithPredicates(p)).
 		Complete(r)
 }
 

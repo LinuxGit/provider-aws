@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	awseks "github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
+	"github.com/crossplane-contrib/provider-aws/pkg/utils/predicate"
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -32,6 +33,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -81,11 +83,16 @@ func SetupAddon(mgr ctrl.Manager, o controller.Options) error {
 		resource.ManagedKind(eksv1alpha1.AddonGroupVersionKind),
 		reconcilerOpts...)
 
+	p, err := predicate.SetupPredicate()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
-		For(&eksv1alpha1.Addon{}).
+		For(&eksv1alpha1.Addon{}, builder.WithPredicates(p)).
 		Complete(r)
 }
 
