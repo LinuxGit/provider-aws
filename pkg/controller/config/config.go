@@ -17,11 +17,13 @@ limitations under the License.
 package config
 
 import (
+	"github.com/crossplane-contrib/provider-aws/pkg/utils/predicate"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/providerconfig"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 
 	"github.com/crossplane-contrib/provider-aws/apis/v1beta1"
 )
@@ -36,10 +38,15 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		UsageList: v1beta1.ProviderConfigUsageListGroupVersionKind,
 	}
 
+	p, err := predicate.SetupPredicate()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1beta1.ProviderConfig{}).
+		For(&v1beta1.ProviderConfig{}, builder.WithPredicates(p)).
 		Watches(&v1beta1.ProviderConfigUsage{}, &resource.EnqueueRequestForProviderConfig{}).
 		Complete(providerconfig.NewReconciler(mgr, of,
 			providerconfig.WithLogger(o.Logger.WithValues("controller", name)),
