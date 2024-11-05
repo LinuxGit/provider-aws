@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	svcsdk "github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/crossplane-contrib/provider-aws/pkg/utils/predicate"
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -17,6 +18,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 
 	svcapitypes "github.com/crossplane-contrib/provider-aws/apis/autoscaling/v1beta1"
 	"github.com/crossplane-contrib/provider-aws/apis/v1alpha1"
@@ -62,11 +64,16 @@ func SetupAutoScalingGroup(mgr ctrl.Manager, o controller.Options) error {
 		resource.ManagedKind(svcapitypes.AutoScalingGroupGroupVersionKind),
 		reconcilerOpts...)
 
+	p, err := predicate.SetupPredicate()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
-		For(&svcapitypes.AutoScalingGroup{}).
+		For(&svcapitypes.AutoScalingGroup{}, builder.WithPredicates(p)).
 		Complete(r)
 }
 

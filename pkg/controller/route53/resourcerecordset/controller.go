@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	route53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
+	"github.com/crossplane-contrib/provider-aws/pkg/utils/predicate"
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -31,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	route53v1alpha1 "github.com/crossplane-contrib/provider-aws/apis/route53/v1alpha1"
@@ -80,11 +82,16 @@ func SetupResourceRecordSet(mgr ctrl.Manager, o controller.Options) error {
 		resource.ManagedKind(route53v1alpha1.ResourceRecordSetGroupVersionKind),
 		reconcilerOpts...)
 
+	p, err := predicate.SetupPredicate()
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
-		For(&route53v1alpha1.ResourceRecordSet{}).
+		For(&route53v1alpha1.ResourceRecordSet{}, builder.WithPredicates(p)).
 		Complete(r)
 }
 
